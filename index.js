@@ -12,20 +12,19 @@ const main = async () => {
       continue;
     }
     console.log(resource);
-    const cpllectData = await collect(resource.APIVERSION, resource.KIND);
-    writeFileSync(
-      `./collect/${resource.APIVERSION.replace("/", "-")}-${
-        resource.KIND
-      }.json`,
-      JSON.stringify(cpllectData, null, 2)
-    );
-
-    // Warning: It may cause circular references and is not recommended.
-    // const expandData = await expand(resource.APIVERSION, resource.KIND);
+    // const cpllectData = await collect(resource.APIVERSION, resource.KIND);
     // writeFileSync(
-    //   `./expand/${resource.APIVERSION.replace("/", "-")}-${resource.KIND}.json`,
-    //   JSON.stringify(expandData, null, 2)
+    //   `./collect/${resource.APIVERSION.replace("/", "-")}-${
+    //     resource.KIND
+    //   }.json`,
+    //   JSON.stringify(cpllectData, null, 2)
     // );
+
+    const expandData = await expand(resource.APIVERSION, resource.KIND);
+    writeFileSync(
+      `./expand/${resource.APIVERSION.replace("/", "-")}-${resource.KIND}.json`,
+      JSON.stringify(expandData, null, 2)
+    );
   }
 };
 

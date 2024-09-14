@@ -1,90 +1,67 @@
 const _ = require("lodash");
 const {
   fetchOpenApiV3,
-  fetchApiResource,
+  applyRequestOptions,
   getSchemaKey,
   splitGroupVersion,
   getApiPathWithGroupVersion,
+  fetchApiResource,
 } = require("./utils");
+const $RefParser = require("@apidevtools/json-schema-ref-parser");
+const {
+  openapiSchemaToJsonSchema: toJsonSchema,
+} = require("@openapi-contrib/openapi-schema-to-json-schema");
+const { writeFileSync } = require("fs");
 
-const resolveRef = (schemas, ref) => {
-  const refPath = ref.replace("#/components/schemas/", "").split("/");
-  let currentSchema = schemas;
-  for (const path of refPath) {
-    if (currentSchema && currentSchema[path]) {
-      currentSchema = currentSchema[path];
-    } else {
-      throw new Error(`错误：找不到 schema：${ref}`);
+const refToRelativePath = (schema) => {
+  const traverse = (obj) => {
+    if (typeof obj !== "object" || obj === null) {
+      return;
     }
-  }
-  return _.cloneDeep(currentSchema);
-};
 
-const traverseSchema = (schemas, schema) => {
-  if (schema.allOf) {
-    schema.allOf = schema.allOf.map((item) =>
-      item.$ref
-        ? traverseSchema(schemas, resolveRef(schemas, item.$ref))
-        : traverseSchema(schemas, item)
-    );
-  } else if (schema.oneOf) {
-    schema.oneOf = schema.oneOf.map((item) =>
-      item.$ref
-        ? traverseSchema(schemas, resolveRef(schemas, item.$ref))
-        : traverseSchema(schemas, item)
-    );
-  } else if (schema.anyOf) {
-    schema.anyOf = schema.anyOf.map((item) =>
-      item.$ref
-        ? traverseSchema(schemas, resolveRef(schemas, item.$ref))
-        : traverseSchema(schemas, item)
-    );
-  } else if (schema.not) {
-    schema.not = schema.not.$ref
-      ? traverseSchema(schemas, resolveRef(schemas, schema.not.$ref))
-      : traverseSchema(schemas, schema.not);
-  }
+    if (obj.$ref && typeof obj.$ref === "string") {
+      obj.$ref = obj.$ref.replace("#/components/schemas/", "./") + ".json";
+    }
 
-  if (schema.properties) {
-    Object.entries(schema.properties).forEach(([propName, prop]) => {
-      if (prop.$ref) {
-        schema.properties[propName] = traverseSchema(
-          schemas,
-          resolveRef(schemas, prop.$ref)
-        );
-      } else if (prop.items) {
-        schema.properties[propName].items = prop.items.$ref
-          ? traverseSchema(schemas, resolveRef(schemas, prop.items.$ref))
-          : traverseSchema(schemas, prop.items);
-      } else {
-        schema.properties[propName] = traverseSchema(schemas, prop);
+    for (let key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        traverse(obj[key]);
       }
-    });
-  }
+    }
+  };
 
-  // TODO: additionalProperties ref
-  // if (schema.additionalProperties) {
-  //   if (schema.additionalProperties.type === "object") {
-  //     schema.additionalProperties = schema.additionalProperties.$ref
-  //       ? traverseSchema(
-  //           schemas,
-  //           resolveRef(schemas, schema.additionalProperties.$ref)
-  //         )
-  //       : traverseSchema(schemas, schema.additionalProperties);
-  //   }
-  // }
-
+  traverse(schema);
   return schema;
 };
 
-// https://openapi.apifox.cn/#schema-%E5%AF%B9%E8%B1%A1
-const expandSchema = (schemas, schema) => {
-  return traverseSchema(schemas, _.cloneDeep(schema));
+const writeSchemas = (schemas) => {
+  for (const [key, value] of Object.entries(schemas)) {
+    writeFileSync(
+      `./schemas/${key}.json`,
+      JSON.stringify(removeXKubernetesFields(refToRelativePath(value)), null, 2)
+    );
+  }
 };
 
-const getSchemaForKey = (schemas, version, kind) => {
-  const entrypoint = getSchemaKey(schemas, version, kind);
-  return schemas[entrypoint];
+const removeXKubernetesFields = (schema) => {
+  const traverse = (obj) => {
+    if (typeof obj !== "object" || obj === null) {
+      return;
+    }
+
+    for (let key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        if (key.startsWith("x-kubernetes-")) {
+          delete obj[key];
+        } else {
+          traverse(obj[key]);
+        }
+      }
+    }
+  };
+
+  traverse(schema);
+  return schema;
 };
 
 const expand = async (apiVersion, kind) => {
@@ -106,8 +83,22 @@ const expand = async (apiVersion, kind) => {
   }
   const apiResource = await fetchApiResource(apiResourcePath);
 
-  const schema = getSchemaForKey(apiResource.components.schemas, version, kind);
-  return await expandSchema(apiResource.components.schemas, schema);
+  writeSchemas(apiResource.components.schemas);
+
+  const entrypoint = getSchemaKey(
+    apiResource.components.schemas,
+    version,
+    kind
+  );
+
+  const schema = await $RefParser.dereference(`./schemas/${entrypoint}.json`, {
+    dereference: {
+      circular: "ignore",
+    },
+  });
+
+  // return toJsonSchema(schema, { dateToDateTime: true });
+  return schema;
 };
 
 module.exports = {
@@ -121,7 +112,7 @@ module.exports = {
 // expand("v1", "Pod");
 
 const main = async () => {
-  const data = await expand("networking.k8s.io/v1", "Ingress");
+  expand("networking.k8s.io/v1", "Ingress");
   console.log(data);
 };
 

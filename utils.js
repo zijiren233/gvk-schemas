@@ -9,13 +9,18 @@ if (!cluster) {
   throw new Error("No currently active cluster");
 }
 
-const fetchApiResource = async (path, options = {}) => {
+const applyRequestOptions = async (path, options = {}) => {
   const requestOptions = {
     method: "GET",
     uri: `${cluster.server}${path}`,
   };
   _.merge(requestOptions, options);
   await kc.applyToRequest(requestOptions);
+  return requestOptions;
+};
+
+const fetchApiResource = async (path, options = {}) => {
+  const requestOptions = await applyRequestOptions(path, options);
   return new Promise((resolve, reject) => {
     request(requestOptions, (error, response, body) => {
       if (error) {
@@ -90,6 +95,7 @@ const getApiPathWithGroupVersion = (group, version) => {
 };
 
 module.exports = {
+  applyRequestOptions,
   fetchApiResource,
   fetchOpenApiV3,
   fetchApis,

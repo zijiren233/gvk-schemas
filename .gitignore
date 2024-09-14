@@ -127,6 +127,7 @@ dist
 
 collect/*
 expand/*
+schemas/*
 
 resp/*
 
