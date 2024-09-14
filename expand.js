@@ -1,6 +1,6 @@
 const { writeFileSync } = require("fs");
 const _ = require("lodash");
-const { fetchOpenApiSpec, fetchApiResource, getSchemaKey } = require("./utils");
+const { fetchOpenApiV3, fetchApiResource, getSchemaKey } = require("./utils");
 
 const resolveRef = (schemas, ref) => {
   const refPath = ref.replace("#/components/schemas/", "").split("/");
@@ -87,13 +87,17 @@ const expand = async (apiVersion, kind) => {
   const [group, version] = apiVersion.includes("/")
     ? apiVersion.split("/")
     : ["", apiVersion];
-  const path = group ? `apis/${group}/${version}` : `api/${version}`;
+  const apiPath = group ? `apis/${group}/${version}` : `api/${version}`;
 
   try {
-    const openApiSpec = await fetchOpenApiSpec();
-    const apiResourcePath = openApiSpec.paths[path].serverRelativeURL;
+    const openApiSpec = await fetchOpenApiV3();
+    const path = openApiSpec.paths[apiPath];
+    if (!path) {
+      throw new Error(`错误：找不到 ${apiVersion}/${kind}API 资源路径: ${apiPath}`);
+    }
+    const apiResourcePath = path.serverRelativeURL;
     if (!apiResourcePath) {
-      throw new Error(`错误：找不到 API 资源路径: ${path}`);
+      throw new Error(`错误：找不到 ${apiVersion}/${kind} API serverRelativeURL 资源路径: ${path}`);
     }
     const apiResource = await fetchApiResource(apiResourcePath);
 

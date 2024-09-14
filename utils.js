@@ -1,6 +1,6 @@
-// utils.js
 const k8s = require("@kubernetes/client-node");
 const request = require("request");
+const _ = require("lodash");
 
 const kc = new k8s.KubeConfig();
 kc.loadFromDefault();
@@ -9,11 +9,12 @@ if (!cluster) {
   throw new Error("No currently active cluster");
 }
 
-const fetchOpenApiSpec = async () => {
+const fetchApiResource = async (path, options = {}) => {
   const requestOptions = {
     method: "GET",
-    uri: `${cluster.server}/openapi/v3`,
+    uri: `${cluster.server}${path}`,
   };
+  _.merge(requestOptions, options);
   await kc.applyToRequest(requestOptions);
   return new Promise((resolve, reject) => {
     request(requestOptions, (error, response, body) => {
@@ -26,19 +27,29 @@ const fetchOpenApiSpec = async () => {
   });
 };
 
-const fetchApiResource = async (path) => {
-  const requestOptions = {
-    method: "GET",
-    uri: `${cluster.server}${path}`,
-  };
-  await kc.applyToRequest(requestOptions);
-  return new Promise((resolve, reject) => {
-    request(requestOptions, (error, response, body) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(JSON.parse(body));
-      }
+const fetchOpenApiV3 = async () => {
+  return fetchApiResource("/openapi/v3");
+};
+
+const fetchApis = async () => {
+  return fetchApiResource("/apis", {
+    headers: {
+      "Accept": "application/json;g=apidiscovery.k8s.io;v=v2;as=APIGroupDiscoveryList,application/json;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList,application/json"
+    }
+  });
+};
+
+const fetchAllResources = async () => {
+  const apis = await fetchApis();
+  return apis.items.flatMap(group => {
+    return group.versions.flatMap(version => {
+      return version.resources.map(resource => ({
+        NAME: resource.resource,
+        SHORTNAMES: resource.shortNames ? resource.shortNames.join(',') : '',
+        APIVERSION: `${group.metadata.name}/${version.version}`,
+        NAMESPACED: resource.scope === 'Namespaced',
+        KIND: resource.responseKind.kind,
+      }));
     });
   });
 };
@@ -46,7 +57,9 @@ const fetchApiResource = async (path) => {
 const getSchemaKey = (schemas, version, kind) => {
   const indexKey = Object.keys(schemas).find((key) => {
     const parts = key.split(".");
-    return parts[parts.length - 2] === version && parts[parts.length - 1] === kind;
+    return (
+      parts[parts.length - 2] === version && parts[parts.length - 1] === kind
+    );
   });
 
   if (!indexKey) {
@@ -56,7 +69,9 @@ const getSchemaKey = (schemas, version, kind) => {
 };
 
 module.exports = {
-  fetchOpenApiSpec,
   fetchApiResource,
+  fetchOpenApiV3,
+  fetchApis,
+  fetchAllResources,
   getSchemaKey,
 };
