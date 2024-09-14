@@ -17,8 +17,7 @@ const resolveRef = (schemas, ref) => {
     if (currentSchema && currentSchema[path]) {
       currentSchema = currentSchema[path];
     } else {
-      console.error(`错误：无效的引用路径：${ref}`);
-      return undefined;
+      throw new Error(`错误：找不到 schema：${ref}`);
     }
   }
   return currentSchema;
