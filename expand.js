@@ -1,5 +1,11 @@
 const _ = require("lodash");
-const { fetchOpenApiV3, fetchApiResource, getSchemaKey } = require("./utils");
+const {
+  fetchOpenApiV3,
+  fetchApiResource,
+  getSchemaKey,
+  splitGroupVersion,
+  getApiPathWithGroupVersion,
+} = require("./utils");
 
 const resolveRef = (schemas, ref) => {
   const refPath = ref.replace("#/components/schemas/", "").split("/");
@@ -82,10 +88,8 @@ const getSchemaForKey = (schemas, version, kind) => {
 };
 
 const expand = async (apiVersion, kind) => {
-  const [group, version] = apiVersion.includes("/")
-    ? apiVersion.split("/")
-    : ["", apiVersion];
-  const apiPath = group ? `apis/${group}/${version}` : `api/${version}`;
+  const { group, version } = splitGroupVersion(apiVersion);
+  const apiPath = getApiPathWithGroupVersion(group, version);
 
   const openApiSpec = await fetchOpenApiV3();
   const path = openApiSpec.paths[apiPath];
@@ -122,5 +126,5 @@ const main = async () => {
 };
 
 if (require.main === module) {
-  main()
+  main();
 }

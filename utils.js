@@ -69,10 +69,33 @@ const getSchemaKey = (schemas, version, kind) => {
   return indexKey;
 };
 
+const splitGroupVersion = (apiVersion) => {
+  const [group, version] = apiVersion.includes("/")
+    ? apiVersion.split("/")
+    : ["", apiVersion];
+  return {
+    group,
+    version,
+  };
+};
+
+const getApiPath = (apiVersion) => {
+  const { group, version } = splitGroupVersion(apiVersion);
+  return getApiPathWithGroupVersion(group, version);
+};
+
+const getApiPathWithGroupVersion = (group, version) => {
+  const apiPath = group ? `apis/${group}/${version}` : `api/${version}`;
+  return apiPath;
+};
+
 module.exports = {
   fetchApiResource,
   fetchOpenApiV3,
   fetchApis,
   fetchAllResources,
   getSchemaKey,
+  splitGroupVersion,
+  getApiPath,
+  getApiPathWithGroupVersion,
 };
