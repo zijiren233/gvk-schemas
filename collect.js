@@ -89,11 +89,15 @@ const collect = async (apiVersion, kind) => {
     const openApiSpec = await fetchOpenApiV3();
     const path = openApiSpec.paths[apiPath];
     if (!path) {
-      throw new Error(`错误：找不到 ${apiVersion}/${kind} API 资源路径: ${apiPath}`);
+      throw new Error(
+        `错误：找不到 ${apiVersion}/${kind} API 资源路径: ${apiPath}`
+      );
     }
     const apiResourcePath = path.serverRelativeURL;
     if (!apiResourcePath) {
-      throw new Error(`错误：找不到 ${apiVersion}/${kind} API serverRelativeURL 资源路径: ${path}`);
+      throw new Error(
+        `错误：找不到 ${apiVersion}/${kind} API serverRelativeURL 资源路径: ${path}`
+      );
     }
     const apiResource = await fetchApiResource(apiResourcePath);
 

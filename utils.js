@@ -34,20 +34,21 @@ const fetchOpenApiV3 = async () => {
 const fetchApis = async () => {
   return fetchApiResource("/apis", {
     headers: {
-      "Accept": "application/json;g=apidiscovery.k8s.io;v=v2;as=APIGroupDiscoveryList,application/json;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList,application/json"
-    }
+      Accept:
+        "application/json;g=apidiscovery.k8s.io;v=v2;as=APIGroupDiscoveryList,application/json;g=apidiscovery.k8s.io;v=v2beta1;as=APIGroupDiscoveryList,application/json",
+    },
   });
 };
 
 const fetchAllResources = async () => {
   const apis = await fetchApis();
-  return apis.items.flatMap(group => {
-    return group.versions.flatMap(version => {
-      return version.resources.map(resource => ({
+  return apis.items.flatMap((group) => {
+    return group.versions.flatMap((version) => {
+      return version.resources.map((resource) => ({
         NAME: resource.resource,
-        SHORTNAMES: resource.shortNames ? resource.shortNames.join(',') : '',
+        SHORTNAMES: resource.shortNames ? resource.shortNames.join(",") : "",
         APIVERSION: `${group.metadata.name}/${version.version}`,
-        NAMESPACED: resource.scope === 'Namespaced',
+        NAMESPACED: resource.scope === "Namespaced",
         KIND: resource.responseKind.kind,
       }));
     });
