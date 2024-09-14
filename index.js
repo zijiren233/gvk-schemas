@@ -3,9 +3,14 @@ const { expand } = require("./expand");
 const { fetchAllResources } = require("./utils");
 const { writeFileSync } = require("fs");
 
+const blackApiVersion = ["acme.yourcompany.com/v1alpha1"];
+
 const main = async () => {
   const resources = await fetchAllResources();
   for (const resource of resources) {
+    if (blackApiVersion.includes(resource.APIVERSION)) {
+      continue;
+    }
     console.log(resource);
     const cpllectData = await collect(resource.APIVERSION, resource.KIND);
     writeFileSync(

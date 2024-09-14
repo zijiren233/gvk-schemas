@@ -21,8 +21,6 @@ const traverseSchema = (schemas, schema) => {
         ? traverseSchema(schemas, resolveRef(schemas, item.$ref))
         : traverseSchema(schemas, item)
     );
-    schema = Object.assign({}, ...schema.allOf);
-    delete schema.allOf;
   } else if (schema.oneOf) {
     schema.oneOf = schema.oneOf.map((item) =>
       item.$ref
@@ -58,16 +56,17 @@ const traverseSchema = (schemas, schema) => {
     });
   }
 
-  if (schema.additionalProperties) {
-    if (typeof schema.additionalProperties === "object") {
-      schema.additionalProperties = schema.additionalProperties.$ref
-        ? traverseSchema(
-            schemas,
-            resolveRef(schemas, schema.additionalProperties.$ref)
-          )
-        : traverseSchema(schemas, schema.additionalProperties);
-    }
-  }
+  // TODO: additionalProperties ref
+  // if (schema.additionalProperties) {
+  //   if (schema.additionalProperties.type === "object") {
+  //     schema.additionalProperties = schema.additionalProperties.$ref
+  //       ? traverseSchema(
+  //           schemas,
+  //           resolveRef(schemas, schema.additionalProperties.$ref)
+  //         )
+  //       : traverseSchema(schemas, schema.additionalProperties);
+  //   }
+  // }
 
   return schema;
 };

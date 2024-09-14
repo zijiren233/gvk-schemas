@@ -8,8 +8,12 @@ const resolveRefName = (name) => {
 const traverseSchema = (schemas, prop, refSchemas) => {
   if (prop.allOf) {
     prop.allOf.forEach((ref) => {
-      ref.$ref = resolveRefName(ref.$ref);
-      collectSchema(schemas, ref.$ref, refSchemas);
+      if (ref.$ref) {
+        ref.$ref = resolveRefName(ref.$ref);
+        collectSchema(schemas, ref.$ref, refSchemas);
+      } else {
+        traverseSchema(schemas, ref, refSchemas);
+      }
     });
   } else if (prop.oneOf) {
     prop.oneOf.forEach((ref) => {
@@ -51,9 +55,10 @@ const traverseSchema = (schemas, prop, refSchemas) => {
       traverseSchema(schemas, subProp, refSchemas);
     });
   } else if (prop.additionalProperties) {
-    if (typeof prop.additionalProperties === "object") {
-      traverseSchema(schemas, prop.additionalProperties, refSchemas);
-    }
+    // TODO: additionalProperties ref
+    // if (prop.additionalProperties.type === "object") {
+    //   traverseSchema(schemas, prop.additionalProperties, refSchemas);
+    // }
   }
 };
 
