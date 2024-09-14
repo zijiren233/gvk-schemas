@@ -38,31 +38,31 @@ const writeSchemas = (schemas) => {
   for (const [key, value] of Object.entries(schemas)) {
     writeFileSync(
       `./schemas/${key}.json`,
-      JSON.stringify(removeXKubernetesFields(refToRelativePath(value)), null, 2)
+      JSON.stringify(refToRelativePath(value), null, 2)
     );
   }
 };
 
-const removeXKubernetesFields = (schema) => {
-  const traverse = (obj) => {
-    if (typeof obj !== "object" || obj === null) {
-      return;
-    }
+// const removeXKubernetesFields = (schema) => {
+//   const traverse = (obj) => {
+//     if (typeof obj !== "object" || obj === null) {
+//       return;
+//     }
 
-    for (let key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        if (key.startsWith("x-kubernetes-")) {
-          delete obj[key];
-        } else {
-          traverse(obj[key]);
-        }
-      }
-    }
-  };
+//     for (let key in obj) {
+//       if (Object.prototype.hasOwnProperty.call(obj, key)) {
+//         if (key.startsWith("x-kubernetes-")) {
+//           delete obj[key];
+//         } else {
+//           traverse(obj[key]);
+//         }
+//       }
+//     }
+//   };
 
-  traverse(schema);
-  return schema;
-};
+//   traverse(schema);
+//   return schema;
+// };
 
 const expand = async (apiVersion, kind) => {
   const { group, version } = splitGroupVersion(apiVersion);
