@@ -1,14 +1,6 @@
-const k8s = require("@kubernetes/client-node");
 const { writeFileSync } = require("fs");
-const request = require("request");
 const _ = require("lodash");
-
-const kc = new k8s.KubeConfig();
-kc.loadFromDefault();
-const cluster = kc.getCurrentCluster();
-if (!cluster) {
-  throw new Error("No currently active cluster");
-}
+const { fetchOpenApiSpec, fetchApiResource, getSchemaKey } = require("./utils");
 
 const resolveRefName = (name) => {
   return name.replace("#/components/schemas/", "");
@@ -60,7 +52,7 @@ const traverseSchema = (schemas, prop, refSchemas) => {
       traverseSchema(schemas, subProp, refSchemas);
     });
   } else if (prop.additionalProperties) {
-    if (typeof prop.additionalProperties === 'object') {
+    if (typeof prop.additionalProperties === "object") {
       traverseSchema(schemas, prop.additionalProperties, refSchemas);
     }
   }
@@ -87,52 +79,6 @@ const collectSchema = (schemas, schemaName, refSchemas = {}) => {
   return refSchemas;
 };
 
-const fetchOpenApiSpec = async () => {
-  const requestOptions = {
-    method: "GET",
-    uri: `${cluster.server}/openapi/v3`,
-  };
-  await kc.applyToRequest(requestOptions);
-  return new Promise((resolve, reject) => {
-    request(requestOptions, (error, response, body) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(JSON.parse(body));
-      }
-    });
-  });
-};
-
-const fetchApiResource = async (path) => {
-  const requestOptions = {
-    method: "GET",
-    uri: `${cluster.server}${path}`,
-  };
-  await kc.applyToRequest(requestOptions);
-  return new Promise((resolve, reject) => {
-    request(requestOptions, (error, response, body) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(JSON.parse(body));
-      }
-    });
-  });
-};
-
-const getSchemaKey = (schemas, version, kind) => {
-  const indexKey = Object.keys(schemas).find((key) => {
-    const parts = key.split(".");
-    return parts[parts.length - 2] === version && parts[parts.length - 1] === kind;
-  });
-
-  if (!indexKey) {
-    throw new Error(`错误：无效的版本和种类：${version}.${kind}`);
-  }
-  return indexKey;
-};
-
 const collect = async (apiVersion, kind) => {
   const [group, version] = apiVersion.includes("/")
     ? apiVersion.split("/")
@@ -147,21 +93,38 @@ const collect = async (apiVersion, kind) => {
     }
     const apiResource = await fetchApiResource(apiResourcePath);
 
-    writeFileSync("./resoult/schemas.json", JSON.stringify(apiResource.components.schemas, null, 2));
-
-    const entrypoint = getSchemaKey(apiResource.components.schemas, version, kind);
-    const expandedSchema = collectSchema(apiResource.components.schemas, entrypoint);
     writeFileSync(
-      `./resoult/${version}-${kind}.json`,
-      JSON.stringify({
-        entrypoint,
-        schemas: expandedSchema,
-      }, null, 2)
+      "./collect/schemas.json",
+      JSON.stringify(apiResource.components.schemas, null, 2)
     );
 
+    const entrypoint = getSchemaKey(
+      apiResource.components.schemas,
+      version,
+      kind
+    );
+    const expandedSchema = collectSchema(
+      apiResource.components.schemas,
+      entrypoint
+    );
+    writeFileSync(
+      `./collect/${version}-${kind}.json`,
+      JSON.stringify(
+        {
+          entrypoint,
+          schemas: expandedSchema,
+        },
+        null,
+        2
+      )
+    );
   } catch (error) {
     console.error("发生错误:", error);
   }
+};
+
+module.exports = {
+  collect,
 };
 
 // collect('app.sealos.io/v1', 'App');

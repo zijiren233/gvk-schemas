@@ -125,6 +125,7 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-resoult/*
+collect/*
+expand/*
 
 !**/.gitkeep
