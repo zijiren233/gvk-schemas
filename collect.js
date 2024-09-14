@@ -132,7 +132,11 @@ module.exports = {
 };
 
 // collect('app.sealos.io/v1', 'App');
-collect("networking.k8s.io/v1", "Ingress");
+// collect("networking.k8s.io/v1", "Ingress");
 // collect('account.sealos.io/v1', 'Transfer');
 // collect('apps/v1', 'Deployment');
 // collect("v1", "Pod");
+
+if (require.main === module) {
+  collect("networking.k8s.io/v1", "Ingress");
+}

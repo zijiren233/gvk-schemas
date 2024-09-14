@@ -126,7 +126,11 @@ module.exports = {
 };
 
 // expand('app.sealos.io/v1', 'App');
-expand("networking.k8s.io/v1", "Ingress");
+// expand("networking.k8s.io/v1", "Ingress");
 // expand('account.sealos.io/v1', 'Transfer');
 // expand('apps/v1', 'Deployment');
 // expand("v1", "Pod");
+
+if (require.main === module) {
+  expand("networking.k8s.io/v1", "Ingress");
+}
