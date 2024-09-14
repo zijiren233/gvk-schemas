@@ -150,7 +150,6 @@ const collect = async (apiVersion, kind) => {
     writeFileSync("./resoult/schemas.json", JSON.stringify(apiResource.components.schemas, null, 2));
 
     const indexKey = getSchemaForKey(apiResource.components.schemas, version, kind);
-    // https://openapi.apifox.cn/#schema-%E5%AF%B9%E8%B1%A1
     const expandedSchema = collectSchema(apiResource.components.schemas, indexKey);
     writeFileSync(
       `./resoult/${version}-${kind}.json`,
