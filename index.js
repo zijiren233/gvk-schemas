@@ -1,14 +1,27 @@
 const { collect } = require("./collect");
 const { expand } = require("./expand");
 const { fetchAllResources } = require("./utils");
+const { writeFileSync } = require("fs");
 
 const main = async () => {
   const resources = await fetchAllResources();
-  resources.forEach((resource) => {
+  for (const resource of resources) {
     console.log(resource);
-    collect(resource.APIVERSION, resource.KIND);
-    expand(resource.APIVERSION, resource.KIND);
-  });
+    const cpllectData = await collect(resource.APIVERSION, resource.KIND);
+    writeFileSync(
+      `./collect/${resource.APIVERSION.replace("/", "-")}-${
+        resource.KIND
+      }.json`,
+      JSON.stringify(cpllectData, null, 2)
+    );
+
+    // Warning: It may cause circular references and is not recommended.
+    // const expandData = await expand(resource.APIVERSION, resource.KIND);
+    // writeFileSync(
+    //   `./expand/${resource.APIVERSION.replace("/", "-")}-${resource.KIND}.json`,
+    //   JSON.stringify(expandData, null, 2)
+    // );
+  }
 };
 
 main();

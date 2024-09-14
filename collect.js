@@ -1,4 +1,3 @@
-const { writeFileSync } = require("fs");
 const _ = require("lodash");
 const { fetchOpenApiV3, fetchApiResource, getSchemaKey } = require("./utils");
 
@@ -85,50 +84,34 @@ const collect = async (apiVersion, kind) => {
     : ["", apiVersion];
   const apiPath = group ? `apis/${group}/${version}` : `api/${version}`;
 
-  try {
-    const openApiSpec = await fetchOpenApiV3();
-    const path = openApiSpec.paths[apiPath];
-    if (!path) {
-      throw new Error(
-        `错误：找不到 ${apiVersion}/${kind} API 资源路径: ${apiPath}`
-      );
-    }
-    const apiResourcePath = path.serverRelativeURL;
-    if (!apiResourcePath) {
-      throw new Error(
-        `错误：找不到 ${apiVersion}/${kind} API serverRelativeURL 资源路径: ${path}`
-      );
-    }
-    const apiResource = await fetchApiResource(apiResourcePath);
-
-    writeFileSync(
-      "./collect/schemas.json",
-      JSON.stringify(apiResource.components.schemas, null, 2)
+  const openApiSpec = await fetchOpenApiV3();
+  const path = openApiSpec.paths[apiPath];
+  if (!path) {
+    throw new Error(
+      `错误：找不到 ${apiVersion}/${kind} API 资源路径: ${apiPath}`
     );
-
-    const entrypoint = getSchemaKey(
-      apiResource.components.schemas,
-      version,
-      kind
-    );
-    const expandedSchema = collectSchema(
-      apiResource.components.schemas,
-      entrypoint
-    );
-    writeFileSync(
-      `./collect/${version}-${kind}.json`,
-      JSON.stringify(
-        {
-          entrypoint,
-          schemas: expandedSchema,
-        },
-        null,
-        2
-      )
-    );
-  } catch (error) {
-    console.error("发生错误:", error);
   }
+  const apiResourcePath = path.serverRelativeURL;
+  if (!apiResourcePath) {
+    throw new Error(
+      `错误：找不到 ${apiVersion}/${kind} API serverRelativeURL 资源路径: ${path}`
+    );
+  }
+  const apiResource = await fetchApiResource(apiResourcePath);
+
+  const entrypoint = getSchemaKey(
+    apiResource.components.schemas,
+    version,
+    kind
+  );
+  const expandedSchema = collectSchema(
+    apiResource.components.schemas,
+    entrypoint
+  );
+  return {
+    entrypoint,
+    schemas: expandedSchema,
+  };
 };
 
 module.exports = {
@@ -141,6 +124,11 @@ module.exports = {
 // collect('apps/v1', 'Deployment');
 // collect("v1", "Pod");
 
+const main = async () => {
+  const data = await collect("networking.k8s.io/v1", "Ingress");
+  console.log(data);
+};
+
 if (require.main === module) {
-  collect("networking.k8s.io/v1", "Ingress");
+  main();
 }
