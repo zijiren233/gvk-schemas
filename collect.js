@@ -121,7 +121,7 @@ const fetchApiResource = async (path) => {
   });
 };
 
-const getSchemaForKey = (schemas, version, kind) => {
+const getSchemaKey = (schemas, version, kind) => {
   const indexKey = Object.keys(schemas).find((key) => {
     const parts = key.split(".");
     return parts[parts.length - 2] === version && parts[parts.length - 1] === kind;
@@ -149,12 +149,12 @@ const collect = async (apiVersion, kind) => {
 
     writeFileSync("./resoult/schemas.json", JSON.stringify(apiResource.components.schemas, null, 2));
 
-    const indexKey = getSchemaForKey(apiResource.components.schemas, version, kind);
-    const expandedSchema = collectSchema(apiResource.components.schemas, indexKey);
+    const entrypoint = getSchemaKey(apiResource.components.schemas, version, kind);
+    const expandedSchema = collectSchema(apiResource.components.schemas, entrypoint);
     writeFileSync(
       `./resoult/${version}-${kind}.json`,
       JSON.stringify({
-        entrypoint: indexKey,
+        entrypoint,
         schemas: expandedSchema,
       }, null, 2)
     );

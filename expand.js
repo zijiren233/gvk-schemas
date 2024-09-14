@@ -106,16 +106,21 @@ const fetchApiResource = async (path) => {
   });
 };
 
-const getSchemaForKey = (schemas, version, kind) => {
+const getSchemaKey = (schemas, version, kind) => {
   const indexKey = Object.keys(schemas).find((key) => {
     const parts = key.split(".");
     return parts[parts.length - 2] === version && parts[parts.length - 1] === kind;
   });
 
   if (!indexKey) {
-    throw new Error(`错误：无效的种类：${kind}`);
+    throw new Error(`错误：无效的版本和种类：${version}.${kind}`);
   }
-  return schemas[indexKey];
+  return indexKey;
+};
+
+const getSchemaForKey = (schemas, version, kind) => {
+  const entrypoint = getSchemaKey(schemas, version, kind);
+  return schemas[entrypoint];
 };
 
 const expand = async (apiVersion, kind) => {
