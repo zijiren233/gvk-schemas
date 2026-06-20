@@ -10,7 +10,7 @@
   "description": "",
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^11.7.0",
-    "@kubernetes/client-node": "^0.21.0",
+    "@kubernetes/client-node": "^1.4.0",
     "@openapi-contrib/openapi-schema-to-json-schema": "^5.1.0",
     "lodash": "^4.17.21"
   }
